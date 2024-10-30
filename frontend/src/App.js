@@ -6,6 +6,7 @@ import DownloadIcon from './icons/download.jsx';
 import CoffeeWidget from './components/CoffeeWidget';
 import DarkModeToggle from './components/DarkModeToggle';
 import DownloadSpinner from './components/DownloadSpinner';
+import { FiShare2 } from 'react-icons/fi';
 
 const generateThumbnail = async (videoUrl) => {
   try {
@@ -65,6 +66,8 @@ function App() {
     return savedTheme === 'dark';
   });
   const [isProgressBarVisible, setIsProgressBarVisible] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const [downloadingFormat, setDownloadingFormat] = useState(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -118,17 +121,17 @@ function App() {
     try {
       setDownloading(true);
       setDownloadProgress(0);
-      setIsProgressBarVisible(true);
+      setShowProgress(true);
+      setDownloadingFormat(format.format_id);
 
       const downloadUrl = `${API_URL}/download?url=${encodeURIComponent(format.url)}`;
-
-      // Use the Fetch API with a custom progress handler
       const response = await fetch(downloadUrl);
 
       if (!response.ok) throw new Error('Download failed');
 
       const reader = response.body.getReader();
-      const contentLength = +response.headers.get('Content-Length');
+      // Make sure we have a valid content length, default to 0 if not provided
+      const contentLength = parseInt(response.headers.get('Content-Length'), 10) || 0;
 
       let receivedLength = 0;
       const chunks = [];
@@ -136,13 +139,23 @@ function App() {
       while (true) {
         const { done, value } = await reader.read();
 
-        if (done) break;
+        if (done) {
+          // Set to 100% when download is complete
+          setDownloadProgress(100);
+          break;
+        }
 
         chunks.push(value);
         receivedLength += value.length;
 
-        const progress = (receivedLength / contentLength) * 100;
-        setDownloadProgress(Math.round(progress));
+        // Calculate progress percentage
+        if (contentLength > 0) {
+          const progressPercent = (receivedLength / contentLength) * 100;
+          setDownloadProgress(Math.round(progressPercent));
+        } else {
+          // If content length is unknown, show indeterminate progress
+          setDownloadProgress(Math.round((receivedLength / 1000000) * 100)); // Estimate based on MB
+        }
       }
 
       const blob = new Blob(chunks, { type: 'video/mp4' });
@@ -158,13 +171,29 @@ function App() {
 
       URL.revokeObjectURL(url);
 
+      // Automatically trigger share after download completes
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Download Twitter Video',
+            text: 'Download Twitter videos easily with FXTCHER',
+            url: window.location.href
+          });
+        } catch (err) {
+          // Silently handle share cancellation
+          console.log('Share cancelled or failed:', err);
+        }
+      }
+
     } catch (err) {
       console.error('Download error:', err);
       setError('Download failed');
     } finally {
+      // Reset all states
       setDownloading(false);
       setDownloadProgress(0);
-      setIsProgressBarVisible(false);
+      setShowProgress(false);
+      setDownloadingFormat(null);
     }
   };
 
@@ -195,20 +224,26 @@ function App() {
     };
   }, [videoInfo]);
 
-  const ProgressBar = ({ progress }) => (
-    <div className="progress-bar-container">
-      <div
-        className="progress-bar-fill"
-        style={{ width: `${progress}%` }}
-      />
-    </div>
-  );
+  const handleShare = async (videoUrl) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Download Twitter Video',
+          text: 'Download Twitter videos easily with FXTCHER',
+          url: window.location.href
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      navigator.clipboard.writeText(window.location.href);
+      // You could add a toast notification here
+    }
+  };
 
   return (
     <div className="app">
-      {isProgressBarVisible && (
-        <ProgressBar progress={downloadProgress} />
-      )}
       <DarkModeToggle
         darkMode={darkMode}
         onToggle={() => setDarkMode(prev => !prev)}
@@ -216,7 +251,7 @@ function App() {
       <header className="header">
         <h1 className="title">
           <DownloadSpinner />
-          FXTCH
+          FXTCHER
         </h1>
         <CoffeeWidget />
       </header>
@@ -260,30 +295,37 @@ function App() {
 
             <div className="format-list">
               {videoInfo.formats.map((format) => (
-                <button
-                  key={format.format_id}
-                  onClick={() => handleDownload(format)}
-                  className={`download-button ${downloading ? 'downloading' : ''}`}
-                  disabled={downloading}
-                >
-                  {downloading ? (
-                    <div className="download-status">
-                      <span className="download-status-text">
-                        Downloading... {downloadProgress}%
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="download-button-content">
-                      <DownloadIcon className="download-icon" />
-                      <span>Download</span>
-                      <span className="type-text">MP4</span>
-                      <span className="resolution-badge">{format.quality}</span>
-                      {parseInt(format.quality) >= 1080 && (
-                        <span className="hd-badge">HD</span>
-                      )}
-                    </div>
-                  )}
-                </button>
+                <div key={format.format_id} className="download-option">
+                  <button
+                    onClick={() => handleDownload(format)}
+                    className={`download-button ${downloadingFormat === format.format_id ? 'downloading' : ''}`}
+                    disabled={downloading}
+                  >
+                    {downloadingFormat === format.format_id ? (
+                      <div className="download-button-content downloading">
+                        <div className="download-progress-wrapper">
+                          <div 
+                            className="download-progress-fill"
+                            style={{ width: `${downloadProgress}%` }}
+                          />
+                          <span className="download-status-text">
+                            {downloadProgress}%
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="download-button-content">
+                        <DownloadIcon className="download-icon" />
+                        <span>Download</span>
+                        <span className="type-text">MP4</span>
+                        <span className="resolution-badge">{format.quality}</span>
+                        {parseInt(format.quality) >= 1080 && (
+                          <span className="hd-badge">HD</span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                </div>
               ))}
             </div>
           </div>
