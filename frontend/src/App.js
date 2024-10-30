@@ -50,6 +50,8 @@ const generateThumbnail = async (videoUrl) => {
   }
 };
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function App() {
   const [url, setUrl] = useState('');
   const [videoInfo, setVideoInfo] = useState(null);
@@ -74,10 +76,10 @@ function App() {
     setError(null);
     setLoading(true);
     setVideoInfo(null);
-    setThumbnailBlobUrl(null); // Reset thumbnail
+    setThumbnailBlobUrl(null);
 
     try {
-      const response = await axios.post(`/api/get-video-info`, { url });
+      const response = await axios.post(`${API_URL}/api/get-video-info`, { url });
       const videoData = response.data;
       setVideoInfo(videoData);
 
@@ -99,14 +101,13 @@ function App() {
     }
   };
 
-
   const handleDownload = async (format) => {
     try {
       setDownloading(true);
       setDownloadProgress(0);
       setIsProgressBarVisible(true);
 
-      const downloadUrl = `/api/download?url=${encodeURIComponent(format.url)}`;
+      const downloadUrl = `${API_URL}/api/download?url=${encodeURIComponent(format.url)}`;
 
       // Use the Fetch API with a custom progress handler
       const response = await fetch(downloadUrl);
@@ -202,7 +203,7 @@ function App() {
       <header className="header">
         <h1 className="title">
           <DownloadSpinner />
-          FETCH-X
+          FXTCH
         </h1>
         <CoffeeWidget />
       </header>
