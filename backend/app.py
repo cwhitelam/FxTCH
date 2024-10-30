@@ -1,99 +1,144 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
-import yt_dlp
-import os
-from urllib.parse import urlparse
-import tempfile
+import requests
+import bs4
+import re
+from urllib.parse import urlparse  # Added this line
 
 app = Flask(__name__)
-
-# Update CORS configuration to be more permissive
-CORS(app, supports_credentials=True, resources={
-    r"/api/*": {
-        "origins": ["http://localhost:3000"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+CORS(app)
 
 def is_valid_twitter_url(url):
     parsed = urlparse(url)
     return parsed.netloc in ['twitter.com', 'www.twitter.com', 'x.com', 'www.x.com']
 
 def get_video_info(url):
-    ydl_opts = {
-        'format': 'best',
-        'quiet': True,
-        'no_warnings': True,
-        'extract_flat': True
-    }
-    
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            info = ydl.extract_info(url, download=False)
-            formats = []
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0'
+        }
+        api_url = f"https://twitsave.com/info?url={url}"
+        response = requests.get(api_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = bs4.BeautifulSoup(response.text, "html.parser")
+        
+        # Get download buttons for different qualities
+        download_buttons = data.find_all("div", class_="origin-top-right")
+        if not download_buttons:
+            raise Exception("No download buttons found")
             
-            for f in info['formats']:
-                if f.get('vcodec') != 'none':
-                    formats.append({
-                        'format_id': f['format_id'],
-                        'quality': f.get('height', 'unknown'),
-                        'ext': f.get('ext', 'mp4'),
-                        'filesize': f.get('filesize', 0)
-                    })
-            
-            return {
-                'title': info.get('title', ''),
-                'thumbnail': info.get('thumbnail', ''),
-                'formats': formats
-            }
-        except Exception as e:
-            return None
+        download_button = download_buttons[0]
+        quality_buttons = download_button.find_all("a")
+        
+        if not quality_buttons:
+            raise Exception("No quality options found")
+        
+        # Get video title
+        title_element = data.find("p", class_="m-2")
+        if title_element:
+            title = title_element.text.strip()
+        else:
+            title = "Twitter Video"
+        
+        # Get thumbnail from meta property
+        thumbnail = None
+        meta_image = data.find('meta', property='og:image')
+        if meta_image and meta_image.get('content'):
+            thumbnail = meta_image.get('content')
+        else:
+            # Fallback to find any image in the content
+            img_tag = data.find('img')
+            if img_tag and img_tag.get('src'):
+                thumbnail = img_tag.get('src')
+        
+        # Get available formats
+        formats = []
+        for button in quality_buttons:
+            url = button.get("href")
+            quality = button.text.strip()
+            if url and quality:
+                formats.append({
+                    'format_id': quality,
+                    'quality': quality,
+                    'url': url,
+                    'ext': 'mp4'
+                })
+        
+        return {
+            'title': title,
+            'thumbnail': thumbnail,
+            'formats': formats
+        }
+    except Exception as e:
+        print(f"Error fetching video info: {str(e)}")
+        return None
 
 @app.route('/api/get-video-info', methods=['POST'])
 def video_info():
     data = request.get_json()
     url = data.get('url')
-    
+
     if not url or not is_valid_twitter_url(url):
         return jsonify({'error': 'Invalid Twitter URL'}), 400
-    
+
     info = get_video_info(url)
     if not info:
         return jsonify({'error': 'Could not fetch video information'}), 400
-        
+
     return jsonify(info)
 
-@app.route('/api/download', methods=['GET'])
-def download_video():
-    url = request.args.get('url')
-    format_id = request.args.get('format')
-    
-    if not url or not format_id:
-        return jsonify({'error': 'Missing parameters'}), 400
-    
-    if not is_valid_twitter_url(url):
-        return jsonify({'error': 'Invalid Twitter URL'}), 400
-    
+@app.route('/api/thumbnail', methods=['GET'])
+def get_thumbnail():
+    thumbnail_url = request.args.get('url')
+    if not thumbnail_url:
+        return jsonify({'error': 'No thumbnail URL provided'}), 400
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_file:
-            ydl_opts = {
-                'format': format_id,
-                'outtmpl': tmp_file.name,
-                'quiet': True
-            }
-            
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-            
-            return send_file(
-                tmp_file.name,
-                mimetype='video/mp4',
-                as_attachment=True,
-                download_name='twitter_video.mp4'
-            )
+        response = requests.get(thumbnail_url, stream=True)
+        response.raise_for_status()
+        return Response(
+            response.iter_content(chunk_size=8192),
+            content_type=response.headers.get('Content-Type', 'image/jpeg')
+        )
     except Exception as e:
+        print(f"Error fetching thumbnail: {str(e)}")
+        return jsonify({'error': 'Error fetching thumbnail'}), 500
+
+@app.route('/api/download', methods=['GET'])
+def download_video_route():
+    video_url = request.args.get('url')
+    if not video_url:
+        print("Error: Missing video URL")
+        return jsonify({'error': 'Missing video URL'}), 400
+
+    print(f"Downloading video from URL: {video_url}")
+
+    try:
+        # Download directly from the URL and stream to client
+        video_response = requests.get(video_url, stream=True)
+        video_response.raise_for_status()
+
+        # Get the content length for progress tracking
+        content_length = video_response.headers.get('content-length')
+
+        # Create response and set headers
+        response = Response(
+            video_response.iter_content(chunk_size=8192),
+            content_type=video_response.headers.get('content-type', 'video/mp4')
+        )
+
+        # Set content length if available
+        if content_length:
+            response.headers['Content-Length'] = content_length
+
+        # Set download headers
+        response.headers['Content-Disposition'] = 'attachment; filename=twitter_video.mp4'
+
+        print("Streaming video to client...")
+        return response
+
+    except Exception as e:
+        print(f"Download error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

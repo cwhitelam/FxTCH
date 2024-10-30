@@ -1,90 +1,367 @@
-.App {
+:root {
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --primary-color: #ffd700;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --error-color: #ff4444;
+  --success-color: #00c853;
+  --button-hover: #2a2a2a;
+  --hd-color: #ff4444;
+  --icon-color: rgba(255, 255, 255, 0.7);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-primary);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.header {
+  padding: 0.5rem;
   text-align: center;
-  padding: 20px;
+  position: relative;
 }
 
-.App-header {
-  margin-bottom: 30px;
+.highlight-button {
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s;
 }
 
-.container {
+.highlight-button:hover {
+  transform: translateY(-2px);
+}
+
+.main-content {
+  flex: 1;
   max-width: 800px;
   margin: 0 auto;
+  padding: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
-.url-form {
+.title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.download-form {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .url-input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
+  background-color: var(--surface-color);
+  border: 2px solid var(--text-secondary);
+  color: var(--text-primary);
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
 }
 
 .load-button {
-  padding: 10px 20px;
-  background-color: #1da1f2;
-  color: white;
+  background-color: var(--surface-color);
+  color: var(--text-primary);
   border: none;
-  border-radius: 4px;
+  padding: 1rem;
+  font-size: 1rem;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.load-button:hover:not(:disabled) {
+  background-color: var(--button-hover);
 }
 
 .load-button:disabled {
-  background-color: #ccc;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.instructions {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin: 2rem 0;
 }
 
 .error-message {
-  color: red;
-  margin: 10px 0;
+  color: var(--error-color);
+  text-align: center;
+  padding: 1rem;
+  margin: 1rem 0;
+  background-color: rgba(255, 68, 68, 0.1);
+  border-radius: 8px;
 }
 
 .video-info {
-  margin-top: 20px;
+  margin-top: 1rem;
 }
 
-.thumbnail {
-  max-width: 100%;
-  height: auto;
-  margin: 20px 0;
-  border-radius: 8px;
+.video-title {
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.3px;
 }
 
 .format-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 0.5rem;
 }
 
 .download-button {
-  padding: 10px 20px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  width: 100%;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 1rem;
   cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
-.download-button:hover {
-  background-color: #218838;
+.download-button:hover:not(:disabled) {
+  background-color: #252525;
+  transform: translateY(-1px);
+}
+
+.download-button-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.download-icon-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a0a0a0;
+}
+
+.download-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.8;
+}
+
+.quality-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.resolution-badge {
+  background-color: #2a2a2a;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.hd-badge {
+  background-color: #ff4444;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.external-icon-wrapper {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+}
+
+.external-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.download-button:hover .external-icon {
+  opacity: 0.8;
+}
+
+.download-progress {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #a0a0a0;
+}
+
+.coffee-button-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.buyButton {
+  display: inline-flex;
+  align-items: center;
+  background-color: #FFDD00;
+  color: #000000;
+  padding: 8px 16px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-family: 'Cookie', cursive;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.buyButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.coffeeImage {
+  height: 24px;
+  width: 24px;
+  margin-right: 8px;
+}
+
+.coffeeButtonText {
+  font-weight: 600;
+}
+
+.footer {
+  text-align: center;
+  padding: 0.5rem;
+  background-color: var(--surface-color);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.disclaimer {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+}
+
+.video-thumbnail {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 1rem;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.video-thumbnail img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.video-thumbnail::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E");
+  background-size: 30px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+.video-preview {
+  margin: 1rem auto;
+  max-width: 600px;
+}
+
+.video-thumbnail-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-color: var(--surface-color);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.placeholder-text {
+  max-width: 80%;
 }
 
 @media (max-width: 600px) {
-  .url-form {
-    flex-direction: column;
+  .main-content {
+    padding: 0.5rem;
   }
-  
-  .url-input,
-  .load-button {
-    width: 100%;
+
+  .title {
+    font-size: 1.5rem;
   }
-} 
+
+  .highlight-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .coffee-button-container {
+    position: static;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .buyButton {
+    font-size: 1rem;
+    padding: 6px 12px;
+  }
+}
