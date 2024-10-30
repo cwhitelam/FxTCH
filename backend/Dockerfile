@@ -18,4 +18,4 @@ COPY . .
 EXPOSE ${PORT:-5000}
 
 # Run the application with gunicorn
-CMD gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --workers=2 --threads=4 --timeout=120
+CMD gunicorn --bind 0.0.0.0:$PORT app:app --workers=2 --threads=4 --timeout=120

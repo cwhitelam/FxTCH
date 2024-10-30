@@ -12,14 +12,14 @@ app = Flask(__name__)
 # Set default port to 5000
 port = int(os.getenv('PORT', '5000'))
 
-# Updated CORS for Railway
+# Updated CORS for Railway with both URLs
 CORS(app, resources={
     r"/api/*": {
         "origins": [
-            Config.RAILWAY_FRONTEND_URL,
             "http://localhost:3000",
             "https://localhost:3000",
-            "https://fxtch-client-production.up.railway.app"
+            "https://fxtch-client-production.up.railway.app",  # Frontend URL
+            "https://fxtch-server-production.up.railway.app"   # Backend URL
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
@@ -163,4 +163,4 @@ def health_check():
     return jsonify({'status': 'healthy'}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0')
