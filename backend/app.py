@@ -8,12 +8,13 @@ import os
 
 app = Flask(__name__)
 
-# Update CORS configuration to explicitly handle all methods
+# Update CORS configuration to include the Railway production URL
 CORS(app, resources={
     r"/api/*": {
         "origins": [
             "https://x-fetch-iota.vercel.app",
             "https://twitter-download-production.up.railway.app",
+            "https://twitter-downloader-production.up.railway.app",  # Added Railway production URL
             "http://localhost:3000",
             "http://localhost:3001"
         ],
@@ -33,7 +34,8 @@ CORS(app, resources={
 @app.route('/api/thumbnail', methods=['OPTIONS'])
 def handle_options():
     response = app.make_default_options_response()
-    response.headers.add('Access-Control-Allow-Origin', 'https://x-fetch-iota.vercel.app')
+    # Add both Vercel and Railway domains
+    response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin'))
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
     return response
