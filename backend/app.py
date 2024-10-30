@@ -4,9 +4,17 @@ import requests
 import bs4
 import re
 from urllib.parse import urlparse  # Added this line
+import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            os.getenv('CORS_ORIGINS', 'http://localhost:3000'),
+            'http://localhost:3000'  # Keep local development URL
+        ]
+    }
+})
 
 def is_valid_twitter_url(url):
     parsed = urlparse(url)
