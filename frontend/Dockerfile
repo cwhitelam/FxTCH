@@ -1,32 +1,27 @@
+# Build stage
 FROM node:16-alpine as build
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
 RUN npm install
 
+# Copy source code
 COPY . .
+
+# Build the app
 RUN npm run build
 
+# Production stage
 FROM nginx:alpine
-
-# Copy built files
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+# Add nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Add bash for the entrypoint script
-RUN apk add --no-cache bash
-
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-PORT="${PORT:-3000}"\n\
-envsubst \'$PORT\' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf\n\
-nginx -g "daemon off;"' > /docker-entrypoint.sh
-
-RUN chmod +x /docker-entrypoint.sh
-
+# Expose port
 EXPOSE 3000
 
-CMD ["/docker-entrypoint.sh"] 
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
