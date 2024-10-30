@@ -28,6 +28,15 @@ CORS(app, resources={
     }
 })
 
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get('Origin')
+    if origin in ["https://x-fetch-iota.vercel.app", "http://localhost:3000", "https://twitter-download-production.up.railway.app"]:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
+
 # Add OPTIONS handlers for all API endpoints
 @app.route('/api/get-video-info', methods=['OPTIONS'])
 @app.route('/api/download', methods=['OPTIONS'])
