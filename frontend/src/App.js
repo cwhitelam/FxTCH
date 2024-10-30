@@ -50,7 +50,7 @@ const generateThumbnail = async (videoUrl) => {
   }
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function App() {
   const [url, setUrl] = useState('');
@@ -79,7 +79,15 @@ function App() {
     setThumbnailBlobUrl(null);
 
     try {
-      const response = await axios.post(`${API_URL}/api/get-video-info`, { url });
+      const response = await axios.post(`${API_URL}/api/get-video-info`, 
+        { url },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: false  // Add this line
+        }
+      );
       const videoData = response.data;
       setVideoInfo(videoData);
 
@@ -96,6 +104,7 @@ function App() {
       }
     } catch (err) {
       setError(err.response?.data?.error || 'An error occurred');
+      console.error('Error details:', err);  // Add this for debugging
     } finally {
       setLoading(false);
     }
