@@ -6,6 +6,9 @@ import bs4
 import re
 from urllib.parse import urlparse
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -13,14 +16,11 @@ app = Flask(__name__)
 port = int(os.getenv('PORT', '5001'))
 
 # Updated CORS for Railway with both URLs
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+
 CORS(app, resources={
     r"/api/*": {
-        "origins": [
-            "http://localhost:3000",
-            "https://localhost:3000",
-            "https://fxtch-client-production.up.railway.app",  # Frontend URL
-            "https://fxtch-server-production.up.railway.app"   # Backend URL
-        ],
+        "origins": ALLOWED_ORIGINS,
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
     }
@@ -94,7 +94,6 @@ def get_video_info(url):
 @app.route('/api/get-video-info', methods=['POST', 'OPTIONS'])
 def video_info():
     if request.method == 'OPTIONS':
-        # You can return an empty response for OPTIONS requests
         return '', 200
     data = request.get_json()
     url = data.get('url')

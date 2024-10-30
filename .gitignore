@@ -82,3 +82,13 @@ yarn-error.log*
 *.bak
 *.tmp
 *~
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# But allow example files
+.env.example
