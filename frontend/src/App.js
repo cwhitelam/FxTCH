@@ -4,6 +4,7 @@ import './App.css';
 import { ReactComponent as DownloadIcon } from './icons/download.svg';
 import { ReactComponent as ExternalIcon } from './icons/external.svg';
 import CoffeeWidget from './components/CoffeeWidget';
+import DarkModeToggle from './components/DarkModeToggle';
 
 const generateThumbnail = async (videoUrl) => {
   try {
@@ -56,6 +57,16 @@ function App() {
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [thumbnailBlobUrl, setThumbnailBlobUrl] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark';
+  });
+  const [isProgressBarVisible, setIsProgressBarVisible] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -92,36 +103,35 @@ function App() {
     try {
       setDownloading(true);
       setDownloadProgress(0);
+      setIsProgressBarVisible(true);
 
       const downloadUrl = `/api/download?url=${encodeURIComponent(format.url)}`;
+      
+      // Use the Fetch API with a custom progress handler
       const response = await fetch(downloadUrl);
-
+      
       if (!response.ok) throw new Error('Download failed');
 
       const reader = response.body.getReader();
       const contentLength = +response.headers.get('Content-Length');
+      
       let receivedLength = 0;
       const chunks = [];
 
-      while (true) {
-        const { done, value } = await reader.read();
+      while(true) {
+        const {done, value} = await reader.read();
+        
         if (done) break;
+        
         chunks.push(value);
         receivedLength += value.length;
-        setDownloadProgress((receivedLength / contentLength) * 100);
+        
+        const progress = (receivedLength / contentLength) * 100;
+        setDownloadProgress(Math.round(progress));
       }
 
       const blob = new Blob(chunks, { type: 'video/mp4' });
       const url = URL.createObjectURL(blob);
-
-      // Generate thumbnail
-      const thumbnailUrl = await generateThumbnail(url);
-      if (thumbnailUrl) {
-        setVideoInfo(prev => ({
-          ...prev,
-          thumbnail: thumbnailUrl
-        }));
-      }
 
       // Download the video
       const link = document.createElement('a');
@@ -131,7 +141,6 @@ function App() {
       link.click();
       document.body.removeChild(link);
 
-      // Cleanup
       URL.revokeObjectURL(url);
 
     } catch (err) {
@@ -140,6 +149,7 @@ function App() {
     } finally {
       setDownloading(false);
       setDownloadProgress(0);
+      setIsProgressBarVisible(false);
     }
   };
 
@@ -170,10 +180,27 @@ function App() {
     };
   }, [videoInfo]);
 
+  const ProgressBar = ({ progress }) => (
+    <div className="progress-bar-container">
+      <div 
+        className="progress-bar-fill"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+
   return (
     <div className="app">
+      {isProgressBarVisible && (
+        <ProgressBar progress={downloadProgress} />
+      )}
+      <DarkModeToggle 
+        darkMode={darkMode} 
+        onToggle={() => setDarkMode(prev => !prev)} 
+      />
       <header className="header">
         <h1 className="title">Video Downloader</h1>
+        <CoffeeWidget />
       </header>
 
       <main className="main-content">
@@ -218,33 +245,25 @@ function App() {
                 <button
                   key={format.format_id}
                   onClick={() => handleDownload(format)}
-                  className="download-button"
+                  className={`download-button ${downloading ? 'downloading' : ''}`}
                   disabled={downloading}
                 >
                   {downloading ? (
-                    <span className="download-progress">
-                      Downloading... {Math.round(downloadProgress)}%
-                    </span>
+                    <div className="download-status">
+                      <span className="download-status-text">
+                        Downloading... {downloadProgress}%
+                      </span>
+                    </div>
                   ) : (
-                    <>
-                      <div className="download-button-content">
-                        <div className="download-icon-wrapper">
-                          <DownloadIcon className="download-icon" />
-                          <span>Download MP4</span>
-                        </div>
-                        <div className="quality-info">
-                          <span className="resolution-badge">
-                            {format.quality}
-                          </span>
-                          {parseInt(format.quality) >= 1080 && (
-                            <span className="hd-badge">HD</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="external-icon-wrapper">
-                        <ExternalIcon className="external-icon" />
-                      </div>
-                    </>
+                    <div className="download-button-content">
+                      <DownloadIcon className="download-icon" />
+                      <span>Download</span>
+                      <span className="type-text">MP4</span>
+                      <span className="resolution-badge">{format.quality}</span>
+                      {parseInt(format.quality) >= 1080 && (
+                        <span className="hd-badge">HD</span>
+                      )}
+                    </div>
                   )}
                 </button>
               ))}
@@ -259,8 +278,6 @@ function App() {
           This tool is not affiliated with Twitter/X.
         </p>
       </footer>
-
-      <CoffeeWidget />
     </div>
   );
 }
