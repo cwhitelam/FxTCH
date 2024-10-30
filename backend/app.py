@@ -16,6 +16,9 @@ CORS(app, resources={
     }
 })
 
+# Add near the top of the file
+port = int(os.getenv('PORT', '5000'))
+
 def is_valid_twitter_url(url):
     parsed = urlparse(url)
     return parsed.netloc in ['twitter.com', 'www.twitter.com', 'x.com', 'www.x.com']
@@ -148,5 +151,10 @@ def download_video_route():
         print(f"Download error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/health')
+def health_check():
+    return jsonify({'status': 'healthy'}), 200
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.getenv('PORT', '5000'))
+    app.run(host='0.0.0.0', port=port)
