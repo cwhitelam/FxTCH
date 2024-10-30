@@ -7,7 +7,7 @@ services:
     github:
       branch: main
       deploy_on_push: true
-      repo: your-github-username/video-downloader
+      repo: cwhitelam/Twitter-Downloader
     http_port: 5000
     instance_size_slug: basic-xxs
     routes:
@@ -24,7 +24,7 @@ services:
     github:
       branch: main
       deploy_on_push: true
-      repo: your-github-username/video-downloader
+      repo: cwhitelam/Twitter-Downloader
     http_port: 80
     instance_size_slug: basic-xxs
     routes:
