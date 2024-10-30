@@ -18,7 +18,8 @@ CORS(app, resources={
         "origins": [
             Config.RAILWAY_FRONTEND_URL,
             "http://localhost:3000",
-            "https://localhost:3000"
+            "https://localhost:3000",
+            "https://fxtch-client-production.up.railway.app"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
