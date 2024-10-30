@@ -9,8 +9,8 @@ import os
 
 app = Flask(__name__)
 
-# Set default port to 5000
-port = int(os.getenv('PORT', '5000'))
+# Set default port to 5001
+port = int(os.getenv('PORT', '5001'))
 
 # Updated CORS for Railway with both URLs
 CORS(app, resources={
@@ -163,4 +163,10 @@ def health_check():
     return jsonify({'status': 'healthy'}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    try:
+        app.run(host='0.0.0.0', port=port)
+    except OSError as e:
+        print(f"Port {port} is in use, trying alternate port...")
+        alt_port = 5001
+        print(f"Attempting to use port {alt_port}")
+        app.run(host='0.0.0.0', port=alt_port)

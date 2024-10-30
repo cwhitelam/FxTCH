@@ -80,7 +80,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        `${API_URL}/api/get-video-info`,
+        `${API_URL}/get-video-info`,
         { url },
         {
           headers: {
@@ -120,7 +120,7 @@ function App() {
       setDownloadProgress(0);
       setIsProgressBarVisible(true);
 
-      const downloadUrl = `${API_URL}/api/download?url=${encodeURIComponent(format.url)}`;
+      const downloadUrl = `${API_URL}/download?url=${encodeURIComponent(format.url)}`;
 
       // Use the Fetch API with a custom progress handler
       const response = await fetch(downloadUrl);
