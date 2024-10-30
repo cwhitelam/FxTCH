@@ -9,13 +9,24 @@ COPY . .
 RUN npm run build
 
 FROM nginx:alpine
+
+# Copy built files
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy nginx config template
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+# Copy nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
-# Expose the port
-EXPOSE ${PORT:-3000}
+# Add bash for the entrypoint script
+RUN apk add --no-cache bash
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"] 
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+PORT="${PORT:-3000}"\n\
+envsubst \'$PORT\' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf\n\
+nginx -g "daemon off;"' > /docker-entrypoint.sh
+
+RUN chmod +x /docker-entrypoint.sh
+
+EXPOSE 3000
+
+CMD ["/docker-entrypoint.sh"] 
