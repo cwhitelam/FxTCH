@@ -50,7 +50,7 @@ const generateThumbnail = async (videoUrl) => {
   }
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 function App() {
   const [url, setUrl] = useState('');
@@ -92,16 +92,19 @@ function App() {
       const videoData = response.data;
       setVideoInfo(videoData);
 
-      // Generate thumbnail immediately after video data is loaded
-      const videoUrl = videoData.formats[0].url; // Adjust this if needed
-      const thumbnailUrl = await generateThumbnail(videoUrl);
-
-      if (thumbnailUrl) {
-        setVideoInfo(prev => ({
-          ...prev,
-          thumbnail: thumbnailUrl
-        }));
-        setThumbnailBlobUrl(thumbnailUrl);
+      if (videoData.thumbnail) {
+        try {
+          // Fetch the thumbnail through our backend proxy
+          const thumbnailResponse = await axios.get(
+            `${API_URL}/thumbnail?url=${encodeURIComponent(videoData.thumbnail)}`,
+            { responseType: 'blob' }
+          );
+          const thumbnailUrl = URL.createObjectURL(thumbnailResponse.data);
+          setThumbnailBlobUrl(thumbnailUrl);
+        } catch (err) {
+          console.error('Error fetching thumbnail:', err);
+          // Don't set error state, just log it since thumbnail is non-critical
+        }
       }
     } catch (err) {
       console.error('Error details:', err);

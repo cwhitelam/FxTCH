@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
+from config import Config
 import requests
 import bs4
 import re
@@ -8,58 +9,21 @@ import os
 
 app = Flask(__name__)
 
-# Update CORS configuration to include the Railway production URL
+# Set default port to 5000
+port = int(os.getenv('PORT', '5000'))
+
+# Updated CORS for Railway
 CORS(app, resources={
     r"/api/*": {
         "origins": [
-            "https://x-fetch-iota.vercel.app",
-            "https://twitter-download-production.up.railway.app",
-            "https://twitter-downloader-production.up.railway.app",  # Added Railway production URL
+            Config.RAILWAY_FRONTEND_URL,
             "http://localhost:3000",
-            "http://localhost:3001"
+            "https://localhost:3000"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": False,
-        "max_age": 600,
-        "send_wildcard": False,
-        "automatic_options": True
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
-
-@app.after_request
-def add_cors_headers(response):
-    origin = request.headers.get('Origin')
-    if origin in ["https://x-fetch-iota.vercel.app", "http://localhost:3000", "https://twitter-download-production.up.railway.app"]:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
-
-# Add OPTIONS handlers for all API endpoints
-@app.route('/api/get-video-info', methods=['OPTIONS'])
-@app.route('/api/download', methods=['OPTIONS'])
-@app.route('/api/thumbnail', methods=['OPTIONS'])
-def handle_options():
-    response = app.make_default_options_response()
-    # Add both Vercel and Railway domains
-    response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin'))
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
-
-# Add a global after_request handler for CORS headers
-@app.after_request
-def add_cors_headers(response):
-    if request.method == 'OPTIONS':
-        response.headers.add('Access-Control-Allow-Origin', 'https://x-fetch-iota.vercel.app')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
-
-# Near the top of the file, update the port handling
-port = int(os.getenv('PORT', '3001'))  # Changed to 3001
 
 def is_valid_twitter_url(url):
     parsed = urlparse(url)
@@ -198,11 +162,4 @@ def health_check():
     return jsonify({'status': 'healthy'}), 200
 
 if __name__ == '__main__':
-    try:
-        app.run(host='0.0.0.0', port=port)
-    except OSError as e:
-        print(f"Error: Port {port} is already in use. Try a different port.")
-        # Try alternate port
-        alt_port = 8000
-        print(f"Attempting to use port {alt_port}...")
-        app.run(host='0.0.0.0', port=alt_port)
+    app.run(host='0.0.0.0', port=port)
