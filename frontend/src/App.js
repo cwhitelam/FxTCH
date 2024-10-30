@@ -5,6 +5,7 @@ import { ReactComponent as DownloadIcon } from './icons/download.svg';
 import { ReactComponent as ExternalIcon } from './icons/external.svg';
 import CoffeeWidget from './components/CoffeeWidget';
 import DarkModeToggle from './components/DarkModeToggle';
+import DownloadSpinner from './components/DownloadSpinner';
 
 const generateThumbnail = async (videoUrl) => {
   try {
@@ -106,26 +107,26 @@ function App() {
       setIsProgressBarVisible(true);
 
       const downloadUrl = `/api/download?url=${encodeURIComponent(format.url)}`;
-      
+
       // Use the Fetch API with a custom progress handler
       const response = await fetch(downloadUrl);
-      
+
       if (!response.ok) throw new Error('Download failed');
 
       const reader = response.body.getReader();
       const contentLength = +response.headers.get('Content-Length');
-      
+
       let receivedLength = 0;
       const chunks = [];
 
-      while(true) {
-        const {done, value} = await reader.read();
-        
+      while (true) {
+        const { done, value } = await reader.read();
+
         if (done) break;
-        
+
         chunks.push(value);
         receivedLength += value.length;
-        
+
         const progress = (receivedLength / contentLength) * 100;
         setDownloadProgress(Math.round(progress));
       }
@@ -182,7 +183,7 @@ function App() {
 
   const ProgressBar = ({ progress }) => (
     <div className="progress-bar-container">
-      <div 
+      <div
         className="progress-bar-fill"
         style={{ width: `${progress}%` }}
       />
@@ -194,12 +195,15 @@ function App() {
       {isProgressBarVisible && (
         <ProgressBar progress={downloadProgress} />
       )}
-      <DarkModeToggle 
-        darkMode={darkMode} 
-        onToggle={() => setDarkMode(prev => !prev)} 
+      <DarkModeToggle
+        darkMode={darkMode}
+        onToggle={() => setDarkMode(prev => !prev)}
       />
       <header className="header">
-        <h1 className="title">Video Downloader</h1>
+        <h1 className="title">
+          <DownloadSpinner />
+          FETCH-X
+        </h1>
         <CoffeeWidget />
       </header>
 
