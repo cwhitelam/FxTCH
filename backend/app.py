@@ -8,19 +8,29 @@ import os
 
 app = Flask(__name__)
 
-# Update CORS configuration to be more permissive during development
+# Update CORS configuration with explicit settings
 CORS(app, resources={
     r"/api/*": {
         "origins": [
-            "https://x-fetch-iota.vercel.app",  # Your Vercel domain
-            "http://localhost:3000",  # Keep local development URL
-            "http://localhost:3001",
-            os.getenv('CORS_ORIGINS', '*')
+            "https://x-fetch-iota.vercel.app",  # Your Vercel frontend URL
+            "http://localhost:3000",            # Local development
+            "http://localhost:3001"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": False,
+        "max_age": 600
     }
 })
+
+# Add CORS headers to all responses
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'https://x-fetch-iota.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 # Near the top of the file, update the port handling
 port = int(os.getenv('PORT', '3001'))  # Changed to 3001
