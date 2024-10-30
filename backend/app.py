@@ -13,6 +13,7 @@ CORS(app, resources={
     r"/api/*": {
         "origins": [
             "https://x-fetch-iota.vercel.app",
+            "https://twitter-download-production.up.railway.app",
             "http://localhost:3000",
             "http://localhost:3001"
         ],
