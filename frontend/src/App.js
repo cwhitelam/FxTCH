@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
-import { ReactComponent as DownloadIcon } from './icons/download.svg';
-import { ReactComponent as ExternalIcon } from './icons/external.svg';
+import DownloadIcon from './icons/download.jsx';
+// import { ReactComponent as ExternalIcon } from './icons/external.svg';
 import CoffeeWidget from './components/CoffeeWidget';
 import DarkModeToggle from './components/DarkModeToggle';
 import DownloadSpinner from './components/DownloadSpinner';
