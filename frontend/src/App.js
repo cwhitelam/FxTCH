@@ -79,13 +79,14 @@ function App() {
     setThumbnailBlobUrl(null);
 
     try {
-      const response = await axios.post(`${API_URL}/api/get-video-info`, 
+      const response = await axios.post(
+        `${API_URL}/api/get-video-info`,
         { url },
         {
           headers: {
             'Content-Type': 'application/json',
           },
-          withCredentials: false  // Add this line
+          withCredentials: false
         }
       );
       const videoData = response.data;
@@ -103,8 +104,8 @@ function App() {
         setThumbnailBlobUrl(thumbnailUrl);
       }
     } catch (err) {
+      console.error('Error details:', err);
       setError(err.response?.data?.error || 'An error occurred');
-      console.error('Error details:', err);  // Add this for debugging
     } finally {
       setLoading(false);
     }
