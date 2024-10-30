@@ -627,7 +627,7 @@ body {
   font-weight: 500;
 }
 
-/* Replace the existing coffee button styles with these */
+/* Update the coffee widget styles for better contrast */
 .coffee-widget {
   margin: 0.5rem auto 1.5rem;
   text-align: center;
@@ -639,37 +639,39 @@ body {
   gap: 10px;
   padding: 8px 16px;
   background-color: transparent;
-  color: #f3da35;
   text-decoration: none;
   border-radius: 8px;
   font-weight: 500;
   transition: all 0.2s ease;
-  border: 2px solid #f3da35;
 }
 
 [data-theme='light'] .coffee-link {
-  color: #f3da35;
-  border-color: #f3da35;
+  color: #000000;
+  border: 2px solid #000000;
+  background-color: transparent;
 }
 
 [data-theme='light'] .coffee-link:hover {
-  background-color: #f3da35;
-  color: #1E1E1E;
+  background-color: #000000;
+  color: #f3da35;
+  border-color: #000000;
 }
 
 [data-theme='dark'] .coffee-link {
   color: #f3da35;
-  border-color: #f3da35;
+  border: 2px solid #f3da35;
+  background-color: transparent;
 }
 
 [data-theme='dark'] .coffee-link:hover {
   background-color: #f3da35;
   color: #1E1E1E;
+  border-color: #f3da35;
 }
 
 .coffee-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(243, 218, 53, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .coffee-icon {
