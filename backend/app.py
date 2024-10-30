@@ -7,17 +7,23 @@ from urllib.parse import urlparse  # Added this line
 import os
 
 app = Flask(__name__)
+
+# Update CORS configuration to be more permissive during development
 CORS(app, resources={
     r"/api/*": {
         "origins": [
-            os.getenv('CORS_ORIGINS', 'http://localhost:3000'),
-            'http://localhost:3000'  # Keep local development URL
-        ]
+            "https://x-fetch-iota.vercel.app",  # Your Vercel domain
+            "http://localhost:3000",  # Keep local development URL
+            "http://localhost:3001",
+            os.getenv('CORS_ORIGINS', '*')
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
-# Add near the top of the file
-port = int(os.getenv('PORT', '5000'))
+# Near the top of the file, update the port handling
+port = int(os.getenv('PORT', '3001'))  # Changed to 3001
 
 def is_valid_twitter_url(url):
     parsed = urlparse(url)
@@ -156,5 +162,11 @@ def health_check():
     return jsonify({'status': 'healthy'}), 200
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', '5000'))
-    app.run(host='0.0.0.0', port=port)
+    try:
+        app.run(host='0.0.0.0', port=port)
+    except OSError as e:
+        print(f"Error: Port {port} is already in use. Try a different port.")
+        # Try alternate port
+        alt_port = 8000
+        print(f"Attempting to use port {alt_port}...")
+        app.run(host='0.0.0.0', port=alt_port)
