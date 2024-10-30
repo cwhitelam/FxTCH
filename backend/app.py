@@ -91,8 +91,11 @@ def get_video_info(url):
         print(f"Error fetching video info: {str(e)}")
         return None
 
-@app.route('/api/get-video-info', methods=['POST'])
+@app.route('/api/get-video-info', methods=['POST', 'OPTIONS'])
 def video_info():
+    if request.method == 'OPTIONS':
+        # You can return an empty response for OPTIONS requests
+        return '', 200
     data = request.get_json()
     url = data.get('url')
 
@@ -104,6 +107,7 @@ def video_info():
         return jsonify({'error': 'Could not fetch video information'}), 400
 
     return jsonify(info)
+
 
 @app.route('/api/thumbnail', methods=['GET'])
 def get_thumbnail():
