@@ -172,15 +172,75 @@ function App() {
       const blob = new Blob(chunks, { type: 'video/mp4' });
       const url = URL.createObjectURL(blob);
 
-      // Download the video
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${videoInfo.title || 'twitter_video'}.${format.ext}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Check if device is iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-      URL.revokeObjectURL(url);
+      if (isIOS) {
+        // For iOS, create a direct video element that can be saved
+        const videoElement = document.createElement('video');
+        videoElement.src = url;
+        videoElement.controls = true;
+        videoElement.style.width = '100%';
+        videoElement.style.maxWidth = '500px';
+        videoElement.style.margin = '20px auto';
+        videoElement.style.display = 'block';
+        videoElement.playsInline = true;
+        videoElement.setAttribute('playsinline', '');
+        videoElement.setAttribute('webkit-playsinline', '');
+        
+        // Create a container for the video and instructions
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.right = '0';
+        container.style.bottom = '0';
+        container.style.backgroundColor = 'rgba(0,0,0,0.9)';
+        container.style.zIndex = '9999';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        container.style.padding = '20px';
+
+        // Add instructions
+        const instructions = document.createElement('p');
+        instructions.textContent = 'Press and hold the video to save to your camera roll';
+        instructions.style.color = 'white';
+        instructions.style.textAlign = 'center';
+        instructions.style.marginBottom = '20px';
+        instructions.style.fontFamily = 'Space Grotesk, sans-serif';
+
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '×';
+        closeButton.style.position = 'absolute';
+        closeButton.style.top = '20px';
+        closeButton.style.right = '20px';
+        closeButton.style.backgroundColor = 'transparent';
+        closeButton.style.border = 'none';
+        closeButton.style.color = 'white';
+        closeButton.style.fontSize = '30px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.onclick = () => {
+          document.body.removeChild(container);
+          URL.revokeObjectURL(url);
+        };
+
+        container.appendChild(closeButton);
+        container.appendChild(instructions);
+        container.appendChild(videoElement);
+        document.body.appendChild(container);
+      } else {
+        // For non-iOS devices, use normal download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${videoInfo.title || 'video'}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
     } catch (err) {
       console.error('Download error:', err);
