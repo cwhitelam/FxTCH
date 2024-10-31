@@ -79,6 +79,13 @@ function App() {
     setLoading(true);
     setVideoInfo(null);
 
+    // Basic URL validation on frontend
+    if (!url.includes('twitter.com') && !url.includes('x.com')) {
+      setError('Please enter a valid Twitter/X URL');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.post(
         `${API_URL}/get-video-info`,
@@ -93,7 +100,7 @@ function App() {
       setVideoInfo(response.data);
     } catch (err) {
       console.error('Error details:', err);
-      setError(err.response?.data?.error || 'An error occurred');
+      setError(err.response?.data?.error || 'An error occurred while fetching the video');
     } finally {
       setLoading(false);
     }
