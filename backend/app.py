@@ -47,12 +47,13 @@ def get_video_info(url):
 
         title = video_info.get('title', 'Twitter Video')
         formats = []
-        qualities_seen = set()  # Set to track unique qualities
+        qualities_seen = set()
 
+        # Get all formats with video
         for fmt in video_info.get('formats', []):
             if fmt.get('vcodec') != 'none': 
                 quality = fmt.get('height')
-                if quality not in qualities_seen:
+                if quality and quality not in qualities_seen:
                     qualities_seen.add(quality)
                     formats.append({
                         'format_id': fmt.get('format_id'),
@@ -60,6 +61,9 @@ def get_video_info(url):
                         'url': fmt.get('url'),
                         'ext': fmt.get('ext'),
                     })
+
+        # Sort formats by quality (height) in descending order
+        formats.sort(key=lambda x: int(x['quality']) if x['quality'] else 0, reverse=True)
 
         return {
             'title': title,
