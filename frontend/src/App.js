@@ -87,10 +87,24 @@ function App() {
     setVideoInfo(null);
     setThumbnailUrl(null);
 
+    // Basic URL validation
+    if (!url.trim()) {
+      setError('Please enter a URL');
+      setLoading(false);
+      return;
+    }
+
     try {
+      const urlPattern = /^https?:\/\/((?:www\.)?(?:twitter\.com|x\.com))/i;
+      if (!urlPattern.test(url)) {
+        setError('Please enter a valid Twitter/X URL');
+        setLoading(false);
+        return;
+      }
+
       const response = await axios.post(
         `${API_URL}/get-video-info`,
-        { url },
+        { url: url.trim() },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -98,15 +112,22 @@ function App() {
           withCredentials: false
         }
       );
-      const videoData = response.data;
 
-      // Set the video info and thumbnail URL
+      if (response.data.error) {
+        throw new Error(response.data.error);
+      }
+
+      const videoData = response.data;
       setVideoInfo(videoData);
       setThumbnailUrl(videoData.thumbnail);
 
     } catch (err) {
       console.error('Error details:', err);
-      setError(err.response?.data?.error || 'An error occurred');
+      setError(
+        err.response?.data?.error || 
+        err.message || 
+        'An error occurred while fetching the video'
+      );
     } finally {
       setLoading(false);
     }

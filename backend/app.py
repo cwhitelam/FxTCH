@@ -6,6 +6,7 @@ import subprocess
 import json
 from urllib.parse import urlparse
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -19,9 +20,15 @@ ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',
 
 CORS(app, resources={
     r"/api/*": {
-        "origins": ALLOWED_ORIGINS,
+        "origins": [
+            "http://localhost:3000",
+            "https://fxtcher.com",
+            "https://www.fxtcher.com",
+            "https://fxtch-client-production.up.railway.app"
+        ],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": False
     },
     r"/thumbnails/*": {
         "origins": ALLOWED_ORIGINS,
@@ -29,9 +36,17 @@ CORS(app, resources={
     }
 })
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 def is_valid_twitter_url(url):
-    parsed = urlparse(url)
-    return 'twitter.com' in parsed.netloc or 'x.com' in parsed.netloc
+    try:
+        parsed = urlparse(url)
+        valid_domains = ['twitter.com', 'www.twitter.com', 'x.com', 'www.x.com']
+        return any(domain in parsed.netloc.lower() for domain in valid_domains)
+    except Exception as e:
+        logger.error(f"URL validation error: {str(e)}")
+        return False
 
 def get_video_info(url):
     try:
@@ -116,21 +131,33 @@ def serve_thumbnail(filename):
         print(f"Error serving thumbnail: {str(e)}")
         return jsonify({'error': 'Thumbnail not found'}), 404
 
-@app.route('/api/get-video-info', methods=['POST', 'OPTIONS'])
+@app.route('/api/get-video-info', methods=['POST'])
 def video_info():
-    if request.method == 'OPTIONS':
-        return '', 200
-    data = request.get_json()
-    url = data.get('url')
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        
+        logger.info(f"Received request for URL: {url}")
 
-    if not url or not is_valid_twitter_url(url):
-        return jsonify({'error': 'Invalid Twitter URL'}), 400
+        if not url:
+            logger.error("No URL provided")
+            return jsonify({'error': 'URL is required'}), 400
 
-    info = get_video_info(url)
-    if not info:
-        return jsonify({'error': 'Could not fetch video information'}), 400
+        if not is_valid_twitter_url(url):
+            logger.error(f"Invalid URL format: {url}")
+            return jsonify({'error': 'Invalid Twitter/X URL. Please use a twitter.com or x.com URL'}), 400
 
-    return jsonify(info)
+        info = get_video_info(url)
+        if not info:
+            logger.error("Could not fetch video information")
+            return jsonify({'error': 'Could not fetch video information. Please make sure the URL contains a video'}), 400
+
+        logger.info("Successfully fetched video info")
+        return jsonify(info)
+
+    except Exception as e:
+        logger.error(f"Error processing request: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/download', methods=['GET'])
 def download_video_route():
