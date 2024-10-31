@@ -28,8 +28,11 @@ CORS(app, resources={
 })
 
 def is_valid_twitter_url(url):
-    parsed = urlparse(url)
-    return 'twitter.com' in parsed.netloc or 'x.com' in parsed.netloc
+    try:
+        parsed = urlparse(url)
+        return any(domain in parsed.netloc.lower() for domain in ['twitter.com', 'x.com'])
+    except:
+        return False
 
 def get_video_info(url):
     try:
@@ -64,17 +67,24 @@ def get_video_info(url):
 
 @app.route('/api/get-video-info', methods=['POST'])
 def video_info():
-    data = request.get_json()
-    url = data.get('url')
+    try:
+        data = request.get_json()
+        url = data.get('url')
 
-    if not url or not is_valid_twitter_url(url):
-        return jsonify({'error': 'Invalid Twitter URL'}), 400
+        if not url:
+            return jsonify({'error': 'URL is required'}), 400
 
-    info = get_video_info(url)
-    if not info:
-        return jsonify({'error': 'Could not fetch video information'}), 400
+        if not is_valid_twitter_url(url):
+            return jsonify({'error': 'Invalid Twitter/X URL. Please use a twitter.com or x.com URL'}), 400
 
-    return jsonify(info)
+        info = get_video_info(url)
+        if not info:
+            return jsonify({'error': 'Could not fetch video information. Please make sure the URL contains a video'}), 400
+
+        return jsonify(info)
+    except Exception as e:
+        print(f"Error processing request: {str(e)}")
+        return jsonify({'error': 'An error occurred processing your request'}), 500
 
 @app.route('/api/download', methods=['GET'])
 def download_video_route():
