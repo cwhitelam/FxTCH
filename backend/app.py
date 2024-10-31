@@ -12,10 +12,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Set default port to 5001
 port = int(os.getenv('PORT', '5001'))
-
-# Updated CORS for allowed origins
 ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 
 CORS(app, resources={

@@ -60,7 +60,6 @@ function App() {
   const [videoInfo, setVideoInfo] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [darkMode, setDarkMode] = useState(() => {
@@ -139,7 +138,6 @@ function App() {
       const blob = new Blob(chunks, { type: 'video/mp4' });
       const url = URL.createObjectURL(blob);
 
-      // Download the video
       const link = document.createElement('a');
       link.href = url;
       link.download = `${videoInfo.title || 'twitter_video'}.${format.ext}`;
