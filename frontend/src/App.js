@@ -150,13 +150,22 @@ function App() {
       // Check if device is iOS
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-      if (isIOS) {
-        // For iOS, open in same window to trigger save
-        window.location.href = url;
-        // Clean up after a delay
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const file = new File([blob], `${videoInfo.title || 'video'}.mp4`, { type: 'video/mp4' });
+
+      if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: videoInfo.title || 'Video',
+            text: 'Check out this video',
+          });
+          console.log('Video shared successfully');
+        } catch (err) {
+          console.error('Error sharing video:', err);
+          setError('Sharing failed');
+        }
       } else {
-        // For non-iOS devices, use normal download
+        // For devices that don't support file sharing, fallback to normal download
         const link = document.createElement('a');
         link.href = url;
         link.download = `${videoInfo.title || 'video'}.mp4`;
@@ -214,7 +223,7 @@ function App() {
 
         {!videoInfo && !error && !loading && (
           <p className="instructions">
-            Paste a X (Twitter) video link above to load download options
+            Paste an X (Twitter) video link above to load download options
           </p>
         )}
 
