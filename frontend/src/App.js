@@ -151,19 +151,12 @@ function App() {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
       if (isIOS) {
-        // For iOS devices, open the video in a new tab/window
-        const newWindow = window.open(url, '_blank');
-
-        if (!newWindow) {
-          alert('Please allow popups for this website to download the video.');
-        }
-
-        // Cleanup after some time
-        setTimeout(() => {
-          URL.revokeObjectURL(url);
-        }, 60000); // Revoke after 1 minute
+        // For iOS, open in same window to trigger save
+        window.location.href = url;
+        // Clean up after a delay
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       } else {
-        // For non-iOS devices, initiate download
+        // For non-iOS devices, use normal download
         const link = document.createElement('a');
         link.href = url;
         link.download = `${videoInfo.title || 'video'}.mp4`;
