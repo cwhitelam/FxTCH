@@ -1,12 +1,12 @@
-from flask import Flask, request, jsonify, send_file, Response
+from flask import Flask, request, jsonify, send_file, Response, url_for
 from flask_cors import CORS
-from config import Config
 import requests
-import bs4
-import re
-from urllib.parse import urlparse
 import os
+import subprocess
+import json
+from urllib.parse import urlparse
 from dotenv import load_dotenv
+import uuid
 
 load_dotenv()
 
@@ -15,7 +15,7 @@ app = Flask(__name__)
 # Set default port to 5001
 port = int(os.getenv('PORT', '5001'))
 
-# Updated CORS for Railway with both URLs
+# Updated CORS for allowed origins
 ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 
 CORS(app, resources={
@@ -23,78 +23,50 @@ CORS(app, resources={
         "origins": ALLOWED_ORIGINS,
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"]
+    },
+    r"/thumbnails/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET"],
     }
 })
 
 def is_valid_twitter_url(url):
     parsed = urlparse(url)
-    return parsed.netloc in ['twitter.com', 'www.twitter.com', 'x.com', 'www.x.com']
+    return 'twitter.com' in parsed.netloc or 'x.com' in parsed.netloc
 
 def get_video_info(url):
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0'
-        }
-        api_url = f"https://twitsave.com/info?url={url}"
-        response = requests.get(api_url, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = bs4.BeautifulSoup(response.text, "html.parser")
-        
-        # Get download buttons for different qualities
-        download_buttons = data.find_all("div", class_="origin-top-right")
-        if not download_buttons:
-            raise Exception("No download buttons found")
-            
-        download_button = download_buttons[0]
-        quality_buttons = download_button.find_all("a")
-        
-        if not quality_buttons:
-            raise Exception("No quality options found")
-        
-        # Get video title
-        title_element = data.find("p", class_="m-2")
-        if title_element:
-            title = title_element.text.strip()
-        else:
-            title = "Twitter Video"
-        
-        # Get thumbnail from meta property
-        thumbnail = None
-        meta_image = data.find('meta', property='og:image')
-        if meta_image and meta_image.get('content'):
-            thumbnail = meta_image.get('content')
-        else:
-            # Fallback to find any image in the content
-            img_tag = data.find('img')
-            if img_tag and img_tag.get('src'):
-                thumbnail = img_tag.get('src')
-        
-        # Get available formats
+        cmd = ['yt-dlp', '-j', url]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"yt-dlp error: {result.stderr}")
+            return None
+
+        video_info_json = result.stdout
+        video_info = json.loads(video_info_json)
+
+        title = video_info.get('title', 'Twitter Video')
         formats = []
-        for button in quality_buttons:
-            url = button.get("href")
-            quality = button.text.strip()
-            if url and quality:
-                formats.append({
-                    'format_id': quality,
-                    'quality': quality,
-                    'url': url,
-                    'ext': 'mp4'
-                })
         
+        for fmt in video_info.get('formats', []):
+            if fmt.get('vcodec') != 'none' and fmt.get('url'):
+                formats.append({
+                    'format_id': fmt.get('format_id'),
+                    'quality': fmt.get('height') or 'Unknown',
+                    'url': fmt.get('url'),
+                    'ext': fmt.get('ext'),
+                })
+
         return {
             'title': title,
-            'thumbnail': thumbnail,
             'formats': formats
         }
     except Exception as e:
         print(f"Error fetching video info: {str(e)}")
         return None
 
-@app.route('/api/get-video-info', methods=['POST', 'OPTIONS'])
+@app.route('/api/get-video-info', methods=['POST'])
 def video_info():
-    if request.method == 'OPTIONS':
-        return '', 200
     data = request.get_json()
     url = data.get('url')
 
@@ -106,23 +78,6 @@ def video_info():
         return jsonify({'error': 'Could not fetch video information'}), 400
 
     return jsonify(info)
-
-
-@app.route('/api/thumbnail', methods=['GET'])
-def get_thumbnail():
-    thumbnail_url = request.args.get('url')
-    if not thumbnail_url:
-        return jsonify({'error': 'No thumbnail URL provided'}), 400
-    try:
-        response = requests.get(thumbnail_url, stream=True)
-        response.raise_for_status()
-        return Response(
-            response.iter_content(chunk_size=8192),
-            content_type=response.headers.get('Content-Type', 'image/jpeg')
-        )
-    except Exception as e:
-        print(f"Error fetching thumbnail: {str(e)}")
-        return jsonify({'error': 'Error fetching thumbnail'}), 500
 
 @app.route('/api/download', methods=['GET'])
 def download_video_route():

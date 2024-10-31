@@ -2,71 +2,71 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import DownloadIcon from './icons/download.jsx';
-// import { ReactComponent as ExternalIcon } from './icons/external.svg';
 import CoffeeWidget from './components/CoffeeWidget';
 import DarkModeToggle from './components/DarkModeToggle';
 import DownloadSpinner from './components/DownloadSpinner';
-import { FiShare2 } from 'react-icons/fi';
-
-const generateThumbnail = async (videoUrl) => {
-  try {
-    const response = await fetch(videoUrl);
-    const blob = await response.blob();
-    const video = document.createElement('video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    video.src = URL.createObjectURL(blob);
-
-    return new Promise((resolve) => {
-      video.onloadeddata = () => {
-        // Set canvas size to match video dimensions
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        // Seek to 1 second or 25% of the video
-        video.currentTime = Math.min(1, video.duration * 0.25);
-
-        video.onseeked = () => {
-          // Draw the video frame on canvas
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          // Convert canvas to blob
-          canvas.toBlob((thumbnailBlob) => {
-            const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
-            URL.revokeObjectURL(video.src);
-            resolve(thumbnailUrl);
-          }, 'image/jpeg', 0.7);
-        };
-      };
-
-      video.onerror = () => {
-        URL.revokeObjectURL(video.src);
-        resolve(null);
-      };
-    });
-  } catch (error) {
-    console.error('Error generating thumbnail:', error);
-    return null;
-  }
-};
+import { FiUser, FiCalendar, FiHeart, FiRepeat, FiMessageCircle } from 'react-icons/fi';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+
+const TweetCard = ({ title }) => {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString || Date.now());
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  return (
+    <div className="tweet-card">
+      <div className="tweet-header">
+        <div className="tweet-user">
+          <FiUser className="tweet-avatar" />
+          <div className="tweet-user-info">
+            <span className="tweet-name">X User</span>
+            <span className="tweet-handle">@user</span>
+          </div>
+        </div>
+        <div className="tweet-date">
+          <FiCalendar className="tweet-date-icon" />
+          {formatDate()}
+        </div>
+      </div>
+      <div className="tweet-content">
+        <p className="tweet-text">{title}</p>
+      </div>
+      <div className="tweet-stats">
+        <div className="tweet-stat">
+          <FiHeart /> <span>0</span>
+        </div>
+        <div className="tweet-stat">
+          <FiRepeat /> <span>0</span>
+        </div>
+        <div className="tweet-stat">
+          <FiMessageCircle /> <span>0</span>
+        </div>
+      </div>
+      <div className="tweet-card-note">
+        * not real
+      </div>
+    </div>
+  );
+};
 
 function App() {
   const [url, setUrl] = useState('');
   const [videoInfo, setVideoInfo] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
-  const [thumbnailBlobUrl, setThumbnailBlobUrl] = useState(null);
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark';
   });
-  const [isProgressBarVisible, setIsProgressBarVisible] = useState(false);
-  const [showProgress, setShowProgress] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState(null);
 
   useEffect(() => {
@@ -79,7 +79,6 @@ function App() {
     setError(null);
     setLoading(true);
     setVideoInfo(null);
-    setThumbnailBlobUrl(null);
 
     try {
       const response = await axios.post(
@@ -92,23 +91,7 @@ function App() {
           withCredentials: false
         }
       );
-      const videoData = response.data;
-      setVideoInfo(videoData);
-
-      if (videoData.thumbnail) {
-        try {
-          // Fetch the thumbnail through our backend proxy
-          const thumbnailResponse = await axios.get(
-            `${API_URL}/thumbnail?url=${encodeURIComponent(videoData.thumbnail)}`,
-            { responseType: 'blob' }
-          );
-          const thumbnailUrl = URL.createObjectURL(thumbnailResponse.data);
-          setThumbnailBlobUrl(thumbnailUrl);
-        } catch (err) {
-          console.error('Error fetching thumbnail:', err);
-          // Don't set error state, just log it since thumbnail is non-critical
-        }
-      }
+      setVideoInfo(response.data);
     } catch (err) {
       console.error('Error details:', err);
       setError(err.response?.data?.error || 'An error occurred');
@@ -121,7 +104,6 @@ function App() {
     try {
       setDownloading(true);
       setDownloadProgress(0);
-      setShowProgress(true);
       setDownloadingFormat(format.format_id);
 
       const downloadUrl = `${API_URL}/download?url=${encodeURIComponent(format.url)}`;
@@ -130,7 +112,6 @@ function App() {
       if (!response.ok) throw new Error('Download failed');
 
       const reader = response.body.getReader();
-      // Make sure we have a valid content length, default to 0 if not provided
       const contentLength = parseInt(response.headers.get('Content-Length'), 10) || 0;
 
       let receivedLength = 0;
@@ -140,7 +121,6 @@ function App() {
         const { done, value } = await reader.read();
 
         if (done) {
-          // Set to 100% when download is complete
           setDownloadProgress(100);
           break;
         }
@@ -148,13 +128,11 @@ function App() {
         chunks.push(value);
         receivedLength += value.length;
 
-        // Calculate progress percentage
         if (contentLength > 0) {
           const progressPercent = (receivedLength / contentLength) * 100;
           setDownloadProgress(Math.round(progressPercent));
         } else {
-          // If content length is unknown, show indeterminate progress
-          setDownloadProgress(Math.round((receivedLength / 1000000) * 100)); // Estimate based on MB
+          setDownloadProgress(Math.round((receivedLength / 1000000) * 100));
         }
       }
 
@@ -164,81 +142,20 @@ function App() {
       // Download the video
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'twitter_video.mp4';
+      link.download = `${videoInfo.title || 'twitter_video'}.${format.ext}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       URL.revokeObjectURL(url);
 
-      // Automatically trigger share after download completes
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'Download Twitter Video',
-            text: 'Download Twitter videos easily with FXTCHER',
-            url: window.location.href
-          });
-        } catch (err) {
-          // Silently handle share cancellation
-          console.log('Share cancelled or failed:', err);
-        }
-      }
-
     } catch (err) {
       console.error('Download error:', err);
       setError('Download failed');
     } finally {
-      // Reset all states
       setDownloading(false);
       setDownloadProgress(0);
-      setShowProgress(false);
       setDownloadingFormat(null);
-    }
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-    let blobUrl = null;
-
-    if (videoInfo && videoInfo.thumbnail) {
-      // Fetch the thumbnail image and convert it to a blob
-      fetch(videoInfo.thumbnail)
-        .then(response => response.blob())
-        .then(blob => {
-          blobUrl = URL.createObjectURL(blob);
-          if (isMounted) {
-            setThumbnailBlobUrl(blobUrl);
-          }
-        })
-        .catch(() => {
-          // Handle errors if necessary
-        });
-    }
-
-    return () => {
-      isMounted = false;
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-      }
-    };
-  }, [videoInfo]);
-
-  const handleShare = async (videoUrl) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Download Twitter Video',
-          text: 'Download Twitter videos easily with FXTCHER',
-          url: window.location.href
-        });
-      } catch (error) {
-        console.log('Error sharing:', error);
-      }
-    } else {
-      // Fallback for browsers that don't support Web Share API
-      navigator.clipboard.writeText(window.location.href);
-      // You could add a toast notification here
     }
   };
 
@@ -258,26 +175,29 @@ function App() {
 
       <main className="main-content">
         <form onSubmit={handleSubmit} className="download-form">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Enter Twitter video URL here"
-            className="url-input"
-            disabled={loading}
-          />
+          <div className="url-input-wrapper">
+            <i className="fa-solid--link url-icon"></i>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="x.com/user/status..."
+              className="url-input"
+              disabled={loading}
+            />
+          </div>
           <button
             type="submit"
             disabled={loading}
             className="load-button"
           >
-            {loading ? 'Loading...' : 'Load Videos'}
+            {loading ? 'Loading...' : 'Load Video'}
           </button>
         </form>
 
         {!videoInfo && !error && !loading && (
           <p className="instructions">
-            Paste a Twitter video link above to load download options
+            Paste a X (Twitter) video link above to load download options
           </p>
         )}
 
@@ -285,14 +205,7 @@ function App() {
 
         {videoInfo && (
           <div className="video-info">
-            <h2 className="video-title">{videoInfo.title}</h2>
-
-            {thumbnailBlobUrl && (
-              <div className="video-thumbnail">
-                <img src={thumbnailBlobUrl} alt="Video preview" />
-              </div>
-            )}
-
+            <TweetCard title={videoInfo.title} />
             <div className="format-list">
               {videoInfo.formats.map((format) => (
                 <div key={format.format_id} className="download-option">
@@ -317,8 +230,8 @@ function App() {
                       <div className="download-button-content">
                         <DownloadIcon className="download-icon" />
                         <span>Download</span>
-                        <span className="type-text">MP4</span>
-                        <span className="resolution-badge">{format.quality}</span>
+                        <span className="type-text">{format.ext.toUpperCase()}</span>
+                        <span className="resolution-badge">{format.quality}p</span>
                         {parseInt(format.quality) >= 1080 && (
                           <span className="hd-badge">HD</span>
                         )}
@@ -333,7 +246,8 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>© 2024 Twitter Video Downloader. For personal use only.</p>
+        <p>© 2024 FXTCHER. For personal use only.</p>
+        <p>No videos, URLs, or personal data are stored on our servers.</p>
         <p className="disclaimer">
           This tool is not affiliated with Twitter/X.
         </p>
