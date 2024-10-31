@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, Response, url_for
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import requests
 import os
@@ -47,14 +47,32 @@ def get_video_info(url):
 
         title = video_info.get('title', 'Twitter Video')
         formats = []
-        for fmt in video_info.get('formats', []):
-            if fmt.get('vcodec') != 'none': 
-                formats.append({
-                    'format_id': fmt.get('format_id'),
-                    'quality': fmt.get('height'),
-                    'url': fmt.get('url'),
-                    'ext': fmt.get('ext'),
-                })
+        seen_qualities = set()  # Track unique qualities
+
+        # Sort formats by quality (height)
+        all_formats = sorted(
+            video_info.get('formats', []),
+            key=lambda x: (x.get('height', 0) or 0),
+            reverse=True
+        )
+
+        for fmt in all_formats:
+            # Only include formats with both video and audio
+            if (fmt.get('vcodec') != 'none' and 
+                fmt.get('acodec') != 'none' and 
+                fmt.get('height')):
+                
+                quality = fmt.get('height')
+                
+                # Only add if we haven't seen this quality before
+                if quality not in seen_qualities:
+                    seen_qualities.add(quality)
+                    formats.append({
+                        'format_id': fmt.get('format_id'),
+                        'quality': quality,
+                        'url': fmt.get('url'),
+                        'ext': 'mp4'  # Force mp4 extension
+                    })
 
         return {
             'title': title,

@@ -144,61 +144,26 @@ function App() {
 
       if (!response.ok) throw new Error('Download failed');
 
-      const reader = response.body.getReader();
-      const contentLength = parseInt(response.headers.get('Content-Length'), 10) || 0;
-
-      let receivedLength = 0;
-      const chunks = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          setDownloadProgress(100);
-          break;
-        }
-
-        chunks.push(value);
-        receivedLength += value.length;
-
-        if (contentLength > 0) {
-          const progressPercent = (receivedLength / contentLength) * 100;
-          setDownloadProgress(Math.round(progressPercent));
-        } else {
-          setDownloadProgress(Math.round((receivedLength / 1000000) * 100));
-        }
-      }
-
-      const blob = new Blob(chunks, { type: 'video/mp4' });
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
 
       // Check if device is iOS
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
       if (isIOS) {
-        // Create a temporary anchor with download attribute
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `${videoInfo.title || 'video'}.mp4`;
-        a.setAttribute('target', '_blank');
-        a.setAttribute('rel', 'noopener noreferrer');
-        
-        // Add necessary attributes for iOS
-        a.setAttribute('target', '_blank');
-        a.setAttribute('rel', 'noopener noreferrer');
-        
-        // Trigger download
-        document.body.appendChild(a);
-        a.click();
-        
-        // Cleanup
+        // For iOS devices, open the video in a new tab/window
+        const newWindow = window.open(url, '_blank');
+
+        if (!newWindow) {
+          alert('Please allow popups for this website to download the video.');
+        }
+
+        // Cleanup after some time
         setTimeout(() => {
-          document.body.removeChild(a);
           URL.revokeObjectURL(url);
-        }, 100);
+        }, 60000); // Revoke after 1 minute
       } else {
-        // For non-iOS devices, use normal download
+        // For non-iOS devices, initiate download
         const link = document.createElement('a');
         link.href = url;
         link.download = `${videoInfo.title || 'video'}.mp4`;
