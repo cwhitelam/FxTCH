@@ -50,21 +50,23 @@ def is_valid_twitter_url(url):
 
 def get_video_info(url):
     try:
+        logger.info(f"Attempting to fetch video info for URL: {url}")
+        
         # Use yt-dlp to get video info in JSON format
         cmd = ['yt-dlp', '-j', url]
+        logger.info(f"Running command: {' '.join(cmd)}")
+        
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            print(f"yt-dlp error: {result.stderr}")
+            logger.error(f"yt-dlp error: {result.stderr}")
             return None
 
+        logger.info("Successfully got video info from yt-dlp")
         video_info_json = result.stdout
         video_info = json.loads(video_info_json)
 
-        # Extract title and thumbnail
+        # Extract title and formats
         title = video_info.get('title', 'Twitter Video')
-        thumbnail_url = video_info.get('thumbnail')
-
-        # Extract video formats
         formats = []
         for fmt in video_info.get('formats', []):
             if fmt.get('vcodec') != 'none': 
@@ -75,14 +77,13 @@ def get_video_info(url):
                     'ext': fmt.get('ext'),
                 })
 
-        # Return the data in the desired format
+        logger.info(f"Processed video info: {len(formats)} formats found")
         return {
             'title': title,
-            'thumbnail': thumbnail_url,
             'formats': formats
         }
     except Exception as e:
-        print(f"Error fetching video info: {str(e)}")
+        logger.error(f"Error in get_video_info: {str(e)}")
         return None
 
 

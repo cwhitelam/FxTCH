@@ -2,10 +2,12 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including yt-dlp
 RUN apt-get update && apt-get install -y \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install yt-dlp
 
 # Copy requirements first for better caching
 COPY requirements.txt .
