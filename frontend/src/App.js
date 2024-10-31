@@ -201,7 +201,7 @@ function App() {
       <header className="header">
         <h1 className="title">
           <DownloadSpinner />
-          FXTCHER
+          FETCHXR
         </h1>
         <CoffeeWidget />
       </header>
