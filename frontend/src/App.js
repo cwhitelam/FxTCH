@@ -176,61 +176,27 @@ function App() {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
       if (isIOS) {
-        // For iOS, create a direct video element that can be saved
-        const videoElement = document.createElement('video');
-        videoElement.src = url;
-        videoElement.controls = true;
-        videoElement.style.width = '100%';
-        videoElement.style.maxWidth = '500px';
-        videoElement.style.margin = '20px auto';
-        videoElement.style.display = 'block';
-        videoElement.playsInline = true;
-        videoElement.setAttribute('playsinline', '');
-        videoElement.setAttribute('webkit-playsinline', '');
+        // Create a temporary anchor with download attribute
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `${videoInfo.title || 'video'}.mp4`;
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
         
-        // Create a container for the video and instructions
-        const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.right = '0';
-        container.style.bottom = '0';
-        container.style.backgroundColor = 'rgba(0,0,0,0.9)';
-        container.style.zIndex = '9999';
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.alignItems = 'center';
-        container.style.justifyContent = 'center';
-        container.style.padding = '20px';
-
-        // Add instructions
-        const instructions = document.createElement('p');
-        instructions.textContent = 'Press and hold the video to save to your camera roll';
-        instructions.style.color = 'white';
-        instructions.style.textAlign = 'center';
-        instructions.style.marginBottom = '20px';
-        instructions.style.fontFamily = 'Space Grotesk, sans-serif';
-
-        // Add close button
-        const closeButton = document.createElement('button');
-        closeButton.textContent = '×';
-        closeButton.style.position = 'absolute';
-        closeButton.style.top = '20px';
-        closeButton.style.right = '20px';
-        closeButton.style.backgroundColor = 'transparent';
-        closeButton.style.border = 'none';
-        closeButton.style.color = 'white';
-        closeButton.style.fontSize = '30px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.onclick = () => {
-          document.body.removeChild(container);
+        // Add necessary attributes for iOS
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+        
+        // Trigger download
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        setTimeout(() => {
+          document.body.removeChild(a);
           URL.revokeObjectURL(url);
-        };
-
-        container.appendChild(closeButton);
-        container.appendChild(instructions);
-        container.appendChild(videoElement);
-        document.body.appendChild(container);
+        }, 100);
       } else {
         // For non-iOS devices, use normal download
         const link = document.createElement('a');
