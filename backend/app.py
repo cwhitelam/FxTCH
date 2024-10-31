@@ -6,13 +6,15 @@ import subprocess
 import json
 from urllib.parse import urlparse
 from dotenv import load_dotenv
-import uuid
 
 load_dotenv()
 
 app = Flask(__name__)
 
+# Set default port to 5001
 port = int(os.getenv('PORT', '5001'))
+
+# Updated CORS for allowed origins
 ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 
 CORS(app, resources={
@@ -28,14 +30,12 @@ CORS(app, resources={
 })
 
 def is_valid_twitter_url(url):
-    try:
-        parsed = urlparse(url)
-        return any(domain in parsed.netloc.lower() for domain in ['twitter.com', 'x.com'])
-    except:
-        return False
+    parsed = urlparse(url)
+    return 'twitter.com' in parsed.netloc or 'x.com' in parsed.netloc
 
 def get_video_info(url):
     try:
+        # Use yt-dlp to get video info in JSON format
         cmd = ['yt-dlp', '-j', url]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
@@ -45,46 +45,92 @@ def get_video_info(url):
         video_info_json = result.stdout
         video_info = json.loads(video_info_json)
 
+        # Extract title and thumbnail
         title = video_info.get('title', 'Twitter Video')
+        thumbnail_url = video_info.get('thumbnail')
+
+        # Extract video formats
         formats = []
-        
         for fmt in video_info.get('formats', []):
-            if fmt.get('vcodec') != 'none' and fmt.get('url'):
+            if fmt.get('vcodec') != 'none': 
                 formats.append({
                     'format_id': fmt.get('format_id'),
-                    'quality': fmt.get('height') or 'Unknown',
+                    'quality': fmt.get('height'),
                     'url': fmt.get('url'),
                     'ext': fmt.get('ext'),
                 })
 
+        # Return the data in the desired format
         return {
             'title': title,
+            'thumbnail': thumbnail_url,
             'formats': formats
         }
     except Exception as e:
         print(f"Error fetching video info: {str(e)}")
         return None
 
-@app.route('/api/get-video-info', methods=['POST'])
-def video_info():
+
+def generate_thumbnail(video_url):
     try:
-        data = request.get_json()
-        url = data.get('url')
+        import uuid
+        from moviepy.editor import VideoFileClip
 
-        if not url:
-            return jsonify({'error': 'URL is required'}), 400
+        # Create a unique filename for the thumbnail
+        thumbnail_filename = f"{uuid.uuid4()}.jpg"
+        thumbnail_path = os.path.join('thumbnails', thumbnail_filename)
+        os.makedirs('thumbnails', exist_ok=True)
 
-        if not is_valid_twitter_url(url):
-            return jsonify({'error': 'Invalid Twitter/X URL. Please use a twitter.com or x.com URL'}), 400
+        # Download the video
+        video_response = requests.get(video_url, stream=True)
+        video_response.raise_for_status()
+        video_temp_file = f"temp_{uuid.uuid4()}.mp4"
+        with open(video_temp_file, 'wb') as f:
+            for chunk in video_response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
 
-        info = get_video_info(url)
-        if not info:
-            return jsonify({'error': 'Could not fetch video information. Please make sure the URL contains a video'}), 400
+        # Generate thumbnail using moviepy
+        clip = VideoFileClip(video_temp_file)
+        duration = clip.duration
+        thumbnail_time = min(1, duration * 0.25)  # 1 second or 25% of the video
+        clip.save_frame(thumbnail_path, t=thumbnail_time)
+        clip.reader.close()
+        if clip.audio:
+            clip.audio.reader.close_proc()
 
-        return jsonify(info)
+        # Clean up the temporary video file
+        os.remove(video_temp_file)
+
+        return thumbnail_filename
     except Exception as e:
-        print(f"Error processing request: {str(e)}")
-        return jsonify({'error': 'An error occurred processing your request'}), 500
+        print(f"Error generating thumbnail: {str(e)}")
+        return None
+
+# This is the function you're asking about
+@app.route('/thumbnails/<filename>')
+def serve_thumbnail(filename):
+    try:
+        return send_file(os.path.join('thumbnails', filename), mimetype='image/jpeg')
+    except Exception as e:
+        print(f"Error serving thumbnail: {str(e)}")
+        return jsonify({'error': 'Thumbnail not found'}), 404
+
+@app.route('/api/get-video-info', methods=['POST', 'OPTIONS'])
+def video_info():
+    if request.method == 'OPTIONS':
+        return '', 200
+    data = request.get_json()
+    url = data.get('url')
+
+    if not url or not is_valid_twitter_url(url):
+        return jsonify({'error': 'Invalid Twitter URL'}), 400
+
+    info = get_video_info(url)
+    if not info:
+        return jsonify({'error': 'Could not fetch video information'}), 400
+
+    return jsonify(info)
 
 @app.route('/api/download', methods=['GET'])
 def download_video_route():

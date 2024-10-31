@@ -9,7 +9,7 @@ import { FiUser, FiCalendar, FiHeart, FiRepeat, FiMessageCircle } from 'react-ic
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
-const TweetCard = ({ title }) => {
+const TweetCard = ({ title, thumbnail }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString || Date.now());
     return date.toLocaleDateString('en-US', { 
@@ -37,6 +37,14 @@ const TweetCard = ({ title }) => {
       <div className="tweet-content">
         <p className="tweet-text">{title}</p>
       </div>
+      {thumbnail && (
+        <div className="tweet-media">
+          <img src={thumbnail} alt="Tweet media" />
+          <div className="tweet-media-overlay">
+            <div className="play-button"></div>
+          </div>
+        </div>
+      )}
       <div className="tweet-stats">
         <div className="tweet-stat">
           <FiHeart /> <span>0</span>
@@ -48,9 +56,6 @@ const TweetCard = ({ title }) => {
           <FiMessageCircle /> <span>0</span>
         </div>
       </div>
-      <div className="tweet-card-note">
-        * not real
-      </div>
     </div>
   );
 };
@@ -58,8 +63,10 @@ const TweetCard = ({ title }) => {
 function App() {
   const [url, setUrl] = useState('');
   const [videoInfo, setVideoInfo] = useState(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [darkMode, setDarkMode] = useState(() => {
@@ -78,13 +85,7 @@ function App() {
     setError(null);
     setLoading(true);
     setVideoInfo(null);
-
-    // Basic URL validation on frontend
-    if (!url.includes('twitter.com') && !url.includes('x.com')) {
-      setError('Please enter a valid Twitter/X URL');
-      setLoading(false);
-      return;
-    }
+    setThumbnailUrl(null);
 
     try {
       const response = await axios.post(
@@ -97,10 +98,15 @@ function App() {
           withCredentials: false
         }
       );
-      setVideoInfo(response.data);
+      const videoData = response.data;
+
+      // Set the video info and thumbnail URL
+      setVideoInfo(videoData);
+      setThumbnailUrl(videoData.thumbnail);
+
     } catch (err) {
       console.error('Error details:', err);
-      setError(err.response?.data?.error || 'An error occurred while fetching the video');
+      setError(err.response?.data?.error || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -145,6 +151,7 @@ function App() {
       const blob = new Blob(chunks, { type: 'video/mp4' });
       const url = URL.createObjectURL(blob);
 
+      // Download the video
       const link = document.createElement('a');
       link.href = url;
       link.download = `${videoInfo.title || 'twitter_video'}.${format.ext}`;
@@ -210,7 +217,10 @@ function App() {
 
         {videoInfo && (
           <div className="video-info">
-            <TweetCard title={videoInfo.title} />
+            <TweetCard 
+              title={videoInfo.title}
+              thumbnail={thumbnailUrl}
+            />
             <div className="format-list">
               {videoInfo.formats.map((format) => (
                 <div key={format.format_id} className="download-option">
@@ -251,7 +261,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>© 2024 FXTCHER. For personal use only.</p>
+        <p>© 2024 X (Twitter) Video Downloader. For personal use only.</p>
         <p>No videos, URLs, or personal data are stored on our servers.</p>
         <p className="disclaimer">
           This tool is not affiliated with Twitter/X.
