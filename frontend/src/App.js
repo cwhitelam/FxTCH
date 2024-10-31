@@ -5,7 +5,7 @@ import DownloadIcon from './icons/download.jsx';
 import CoffeeWidget from './components/CoffeeWidget';
 import DarkModeToggle from './components/DarkModeToggle';
 import DownloadSpinner from './components/DownloadSpinner';
-import { FiUser, FiCalendar, FiHeart, FiRepeat, FiMessageCircle } from 'react-icons/fi';
+import { FiUser, FiCalendar, FiHeart, FiRepeat, FiMessageCircle, FiX } from 'react-icons/fi';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
@@ -211,6 +211,16 @@ function App() {
               className="url-input"
               disabled={loading}
             />
+            {url && (
+              <button
+                type="button"
+                className="url-clear-button"
+                onClick={() => setUrl('')}
+                aria-label="Clear input"
+              >
+                <FiX />
+              </button>
+            )}
           </div>
           <button
             type="submit"
